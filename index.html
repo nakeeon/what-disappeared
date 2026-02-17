@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔍 Що зникло?</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Comic Neue','Comic Sans MS',cursive;background:linear-gradient(135deg,#e3f2fd,#f3e5f5,#e8f5e9);min-height:100vh;padding:10px;user-select:none}
+  .container{max-width:520px;margin:0 auto;text-align:center}
+  h1{font-size:28px;color:#2c3e80;margin:10px 0}
+  .subtitle{font-size:16px;color:#666;margin-bottom:12px}
+
+  .menu{margin-top:20px}
+  .menu-btn{display:block;width:100%;padding:16px;margin:10px 0;border:none;border-radius:16px;font-size:20px;font-weight:700;font-family:inherit;cursor:pointer;color:white;box-shadow:0 3px 12px rgba(0,0,0,0.15);transition:transform 0.15s}
+  .menu-btn:active{transform:scale(0.97)}
+  .btn-easy{background:linear-gradient(135deg,#4CAF50,#2e7d32)}
+  .btn-medium{background:linear-gradient(135deg,#FF9800,#e65100)}
+  .btn-hard{background:linear-gradient(135deg,#e53935,#b71c1c)}
+
+  .game{display:none}
+  .back-btn{background:none;border:2px solid #ddd;border-radius:20px;padding:6px 16px;font-size:14px;font-family:inherit;color:#888;cursor:pointer;margin-bottom:10px}
+  .back-btn:active{background:#f0f0f0}
+
+  .phase-text{font-size:22px;font-weight:700;color:#2c3e80;margin:10px 0;min-height:30px}
+  .round-info{font-size:14px;color:#999;margin-bottom:8px}
+
+  .grid{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin:15px 0;min-height:200px}
+  .item{font-size:48px;width:70px;height:70px;display:flex;align-items:center;justify-content:center;background:white;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,0.1);transition:all 0.3s;cursor:default}
+  .item.hidden{opacity:0;transform:scale(0)}
+  .item.clickable{cursor:pointer;border:3px solid transparent}
+  .item.clickable:hover{border-color:#FFD700;transform:scale(1.1)}
+  .item.clickable:active{transform:scale(0.9)}
+  .item.correct{background:#e8f5e9;border:3px solid #4CAF50;animation:bounce 0.5s}
+  .item.wrong{background:#ffebee;border:3px solid #f44336;animation:shake 0.5s}
+
+  @keyframes bounce{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+
+  .answers{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:15px 0}
+  .answer-btn{font-size:42px;width:65px;height:65px;display:flex;align-items:center;justify-content:center;background:white;border-radius:16px;border:3px solid #ddd;cursor:pointer;transition:all 0.15s;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
+  .answer-btn:hover{border-color:#FFD700;transform:scale(1.1)}
+  .answer-btn:active{transform:scale(0.9)}
+
+  .timer-bar{width:100%;height:8px;background:#eee;border-radius:4px;margin:8px 0;overflow:hidden}
+  .timer-fill{height:100%;background:linear-gradient(90deg,#4CAF50,#FFD700);border-radius:4px;transition:width 0.1s linear}
+
+  .score-section{background:white;border-radius:20px;padding:20px;margin-top:15px;box-shadow:0 4px 15px rgba(0,0,0,0.1)}
+  .score-big{font-size:48px;font-weight:700;color:#2c3e80}
+  .score-emoji{font-size:52px;margin:8px 0}
+  .score-msg{font-size:20px;font-weight:700;color:#555;margin:8px 0}
+  .retry-btn{background:linear-gradient(135deg,#4CAF50,#2e7d32);color:white;border:none;border-radius:30px;padding:12px 32px;font-size:18px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:10px}
+  .retry-btn:active{transform:scale(0.95)}
+
+  .confetti-piece{position:fixed;border-radius:2px;animation:confettiFall 3s ease-out forwards;pointer-events:none;z-index:1000}
+  @keyframes confettiFall{0%{transform:translateY(-10px) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+
+  .countdown{font-size:72px;font-weight:700;color:#e53935;animation:pulse 0.5s}
+  @keyframes pulse{0%{transform:scale(0.5);opacity:0}50%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🔍 Що зникло?</h1>
+  <p class="subtitle">Тренуй свою пам'ять!</p>
+
+  <div id="menu" class="menu">
+    <p style="font-size:16px;color:#555;margin-bottom:15px">Запам'ятай предмети, потім вгадай — який зник!</p>
+    <button class="menu-btn btn-easy" onclick="startGame(4,5)">🌱 Легко (4 предмети, 5 раундів)</button>
+    <button class="menu-btn btn-medium" onclick="startGame(6,7)">🌟 Середньо (6 предметів, 7 раундів)</button>
+    <button class="menu-btn btn-hard" onclick="startGame(8,10)">🔥 Складно (8 предметів, 10 раундів)</button>
+  </div>
+
+  <div id="game" class="game">
+    <button class="back-btn" onclick="backToMenu()">← Меню</button>
+    <div class="round-info" id="roundInfo"></div>
+    <div class="phase-text" id="phaseText"></div>
+    <div class="timer-bar" id="timerBar"><div class="timer-fill" id="timerFill" style="width:100%"></div></div>
+    <div class="grid" id="grid"></div>
+    <div class="answers" id="answers"></div>
+  </div>
+
+  <div id="result" style="display:none">
+    <div class="score-section">
+      <div class="score-emoji" id="resEmoji"></div>
+      <div class="score-big" id="resScore"></div>
+      <div class="score-msg" id="resMsg"></div>
+      <button class="retry-btn" onclick="backToMenu()">🔄 Грати ще</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ALL_EMOJIS = ['🍎','🍌','🍇','🍒','🍓','🍑','🥝','🍋','🍊','🍉','🥭','🫐',
+  '🐶','🐱','🐰','🐸','🦊','🐻','🐼','🦁','🐨','🐯','🦋','🐝',
+  '⚽','🏀','🎾','🎸','🎺','🎨','📚','✏️','🔔','⭐','❤️','🌈',
+  '🚗','🚀','✈️','🚲','🏠','🌻','🌸','🍕','🎂','🧁','🍩','🎁',
+  '👑','💎','🎩','🧸','🎯','🪁','⛵','🦄'];
+
+let itemCount, totalRounds, currentRound, score, currentItems, removedItem;
+let timerInterval;
+
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+  return a;
+}
+
+function pickRandom(arr,n){return shuffle(arr).slice(0,n)}
+
+function startGame(items,rounds){
+  itemCount=items;totalRounds=rounds;currentRound=0;score=0;
+  document.getElementById('menu').style.display='none';
+  document.getElementById('result').style.display='none';
+  document.getElementById('game').style.display='block';
+  nextRound();
+}
+
+function nextRound(){
+  currentRound++;
+  if(currentRound>totalRounds){showResult();return}
+  document.getElementById('roundInfo').textContent='Раунд '+currentRound+' з '+totalRounds+' | Рахунок: '+score;
+  document.getElementById('answers').innerHTML='';
+  
+  // Pick items
+  currentItems=pickRandom(ALL_EMOJIS,itemCount);
+  
+  // Show phase
+  showItems('👀 Запам\'ятай!');
+  
+  // Timer for memorizing
+  const memTime=itemCount<=4?8000:itemCount<=6?12000:15000;
+  startTimer(memTime);
+  
+  setTimeout(()=>{
+    stopTimer();
+    hideAndAsk();
+  },memTime);
+}
+
+function showItems(text){
+  document.getElementById('phaseText').textContent=text;
+  const grid=document.getElementById('grid');
+  grid.innerHTML='';
+  currentItems.forEach(emoji=>{
+    const div=document.createElement('div');
+    div.className='item';
+    div.textContent=emoji;
+    grid.appendChild(div);
+  });
+}
+
+function hideAndAsk(){
+  // Remove one random item
+  const removeIdx=Math.floor(Math.random()*currentItems.length);
+  removedItem=currentItems[removeIdx];
+  
+  // Show remaining items
+  const remaining=[...currentItems];
+  remaining.splice(removeIdx,1);
+  
+  document.getElementById('phaseText').textContent='❓ Що зникло?';
+  const grid=document.getElementById('grid');
+  grid.innerHTML='';
+  remaining.forEach(emoji=>{
+    const div=document.createElement('div');
+    div.className='item';
+    div.textContent=emoji;
+    grid.appendChild(div);
+  });
+  
+  // Show answer options (correct + 2-3 wrong)
+  const wrongCount=itemCount<=4?2:3;
+  const wrongOptions=pickRandom(ALL_EMOJIS.filter(e=>!currentItems.includes(e)),wrongCount);
+  const options=shuffle([removedItem,...wrongOptions]);
+  
+  const answers=document.getElementById('answers');
+  answers.innerHTML='';
+  options.forEach(emoji=>{
+    const btn=document.createElement('div');
+    btn.className='answer-btn';
+    btn.textContent=emoji;
+    btn.onclick=()=>checkAnswer(emoji,btn);
+    answers.appendChild(btn);
+  });
+  
+  // Timer for answering
+  const ansTime=itemCount<=4?15000:itemCount<=6?25000:30000;
+  startTimer(ansTime);
+  setTimeout(()=>{
+    stopTimer();
+    // Time's up - show correct answer
+    if(document.getElementById('answers').innerHTML){
+      showCorrect(null);
+    }
+  },ansTime);
+}
+
+function checkAnswer(emoji,btn){
+  stopTimer();
+  // Disable all buttons
+  document.querySelectorAll('.answer-btn').forEach(b=>b.onclick=null);
+  
+  if(emoji===removedItem){
+    btn.style.background='#e8f5e9';
+    btn.style.borderColor='#4CAF50';
+    document.getElementById('phaseText').textContent='✅ Правильно!';
+    score++;
+  }else{
+    btn.style.background='#ffebee';
+    btn.style.borderColor='#f44336';
+    showCorrect(btn);
+    return;
+  }
+  
+  document.getElementById('roundInfo').textContent='Раунд '+currentRound+' з '+totalRounds+' | Рахунок: '+score;
+  setTimeout(nextRound,1200);
+}
+
+function showCorrect(wrongBtn){
+  document.getElementById('phaseText').textContent='❌ Зникло: '+removedItem;
+  document.querySelectorAll('.answer-btn').forEach(b=>{
+    b.onclick=null;
+    if(b.textContent===removedItem){
+      b.style.background='#e8f5e9';
+      b.style.borderColor='#4CAF50';
+      b.style.animation='bounce 0.5s';
+    }
+  });
+  setTimeout(nextRound,2000);
+}
+
+function showResult(){
+  document.getElementById('game').style.display='none';
+  document.getElementById('result').style.display='block';
+  
+  const pct=score/totalRounds*100;
+  let emoji,msg;
+  if(pct>=90){emoji='🏆🎉🌟';msg='Неймовірна пам\'ять!';confetti()}
+  else if(pct>=70){emoji='👏😊';msg='Чудовий результат!';confetti()}
+  else if(pct>=50){emoji='🤔💪';msg='Непогано! Тренуйся ще!'}
+  else{emoji='😅📚';msg='Спробуй ще раз!'}
+  
+  document.getElementById('resEmoji').textContent=emoji;
+  document.getElementById('resScore').textContent=score+'/'+totalRounds;
+  document.getElementById('resMsg').textContent=msg;
+}
+
+function backToMenu(){
+  stopTimer();
+  document.getElementById('game').style.display='none';
+  document.getElementById('result').style.display='none';
+  document.getElementById('menu').style.display='block';
+}
+
+function startTimer(ms){
+  const fill=document.getElementById('timerFill');
+  fill.style.width='100%';
+  fill.style.background='linear-gradient(90deg,#4CAF50,#FFD700)';
+  const start=Date.now();
+  timerInterval=setInterval(()=>{
+    const elapsed=Date.now()-start;
+    const pct=Math.max(0,100-elapsed/ms*100);
+    fill.style.width=pct+'%';
+    if(pct<=30) fill.style.background='linear-gradient(90deg,#f44336,#FF9800)';
+    else fill.style.background='linear-gradient(90deg,#4CAF50,#FFD700)';
+    if(elapsed>=ms) clearInterval(timerInterval);
+  },50);
+}
+
+function stopTimer(){
+  clearInterval(timerInterval);
+}
+
+function confetti(){
+  const colors=['#FFD700','#FF6B6B','#4CAF50','#2196F3','#FF9800','#9C27B0'];
+  for(let i=0;i<35;i++){setTimeout(()=>{const p=document.createElement('div');p.className='confetti-piece';p.style.left=Math.random()*100+'vw';p.style.background=colors[Math.floor(Math.random()*colors.length)];p.style.animationDuration=(2+Math.random()*2)+'s';p.style.width=(6+Math.random()*8)+'px';p.style.height=(6+Math.random()*8)+'px';document.body.appendChild(p);setTimeout(()=>p.remove(),4000)},i*50)}
+}
+</script>
+</body>
+</html>

@@ -52,6 +52,9 @@
   .score-msg{font-size:20px;font-weight:700;color:#555;margin:8px 0}
   .retry-btn{background:linear-gradient(135deg,#4CAF50,#2e7d32);color:white;border:none;border-radius:30px;padding:12px 32px;font-size:18px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:10px}
   .retry-btn:active{transform:scale(0.95)}
+  .hint-btn{background:linear-gradient(135deg,#FFD700,#FFA000);color:#333;border:none;border-radius:30px;padding:10px 24px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;margin:10px 0;box-shadow:0 2px 8px rgba(0,0,0,0.15);transition:transform 0.15s,opacity 0.2s}
+  .hint-btn:active{transform:scale(0.95)}
+  .hint-btn:disabled{opacity:0.4;cursor:not-allowed}
 
   .confetti-piece{position:fixed;border-radius:2px;animation:confettiFall 3s ease-out forwards;pointer-events:none;z-index:1000}
   @keyframes confettiFall{0%{transform:translateY(-10px) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
@@ -79,6 +82,9 @@
     <div class="timer-bar" id="timerBar"><div class="timer-fill" id="timerFill" style="width:100%"></div></div>
     <div class="grid" id="grid"></div>
     <div class="answers" id="answers"></div>
+    <div id="hintArea" style="display:none">
+      <button class="hint-btn" id="hintBtn" onclick="useHint()">💡 Підказка</button>
+    </div>
   </div>
 
   <div id="result" style="display:none">
@@ -99,7 +105,7 @@ const ALL_EMOJIS = ['🍎','🍌','🍇','🍒','🍓','🍑','🥝','🍋','�
   '👑','💎','🎩','🧸','🎯','🪁','⛵','🦄'];
 
 let itemCount, totalRounds, currentRound, score, currentItems, removedItem;
-let timerInterval;
+let timerInterval, hintUsed;
 
 function shuffle(arr){
   const a=[...arr];
@@ -184,15 +190,24 @@ function hideAndAsk(){
     btn.onclick=()=>checkAnswer(emoji,btn);
     answers.appendChild(btn);
   });
-  
+
+  // Show hint button
+  hintUsed=false;
+  document.getElementById('hintArea').style.display='block';
+  document.getElementById('hintBtn').disabled=false;
+  document.getElementById('hintBtn').textContent='💡 Підказка';
+
   // Timer for answering
   const ansTime=itemCount<=4?15000:itemCount<=6?25000:30000;
   startTimer(ansTime);
   setTimeout(()=>{
     stopTimer();
-    // Time's up - show correct answer
+    // Time's up — no answer shown, just move on
     if(document.getElementById('answers').innerHTML){
-      showCorrect(null);
+      document.getElementById('phaseText').textContent='⏰ Час вийшов!';
+      document.getElementById('hintArea').style.display='none';
+      document.querySelectorAll('.answer-btn').forEach(b=>b.onclick=null);
+      setTimeout(nextRound,1500);
     }
   },ansTime);
 }
@@ -202,6 +217,7 @@ function checkAnswer(emoji,btn){
   // Disable all buttons
   document.querySelectorAll('.answer-btn').forEach(b=>b.onclick=null);
   
+  document.getElementById('hintArea').style.display='none';
   if(emoji===removedItem){
     btn.style.background='#e8f5e9';
     btn.style.borderColor='#4CAF50';
@@ -210,7 +226,9 @@ function checkAnswer(emoji,btn){
   }else{
     btn.style.background='#ffebee';
     btn.style.borderColor='#f44336';
-    showCorrect(btn);
+    document.getElementById('phaseText').textContent='❌ Не вгадав!';
+    document.querySelectorAll('.answer-btn').forEach(b=>b.onclick=null);
+    setTimeout(nextRound,1500);
     return;
   }
   
@@ -218,17 +236,21 @@ function checkAnswer(emoji,btn){
   setTimeout(nextRound,1200);
 }
 
-function showCorrect(wrongBtn){
-  document.getElementById('phaseText').textContent='❌ Зникло: '+removedItem;
-  document.querySelectorAll('.answer-btn').forEach(b=>{
-    b.onclick=null;
-    if(b.textContent===removedItem){
-      b.style.background='#e8f5e9';
-      b.style.borderColor='#4CAF50';
-      b.style.animation='bounce 0.5s';
-    }
-  });
-  setTimeout(nextRound,2000);
+function useHint(){
+  if(hintUsed) return;
+  hintUsed=true;
+  const btn=document.getElementById('hintBtn');
+  btn.disabled=true;
+  btn.textContent='💡 Використано';
+
+  // Remove one wrong answer button
+  const btns=[...document.querySelectorAll('.answer-btn')].filter(b=>b.onclick!==null && b.textContent!==removedItem);
+  if(btns.length>0){
+    const remove=btns[Math.floor(Math.random()*btns.length)];
+    remove.style.opacity='0.2';
+    remove.style.pointerEvents='none';
+    remove.onclick=null;
+  }
 }
 
 function showResult(){
@@ -251,6 +273,7 @@ function backToMenu(){
   stopTimer();
   document.getElementById('game').style.display='none';
   document.getElementById('result').style.display='none';
+  document.getElementById('hintArea').style.display='none';
   document.getElementById('menu').style.display='block';
 }
 
